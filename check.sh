@@ -6,7 +6,13 @@
 set -eu
 cd "$(dirname "$0")"
 fail=0
-note() { printf '  %s\n' "$1"; fail=1; }
+# Under Actions, also emit a workflow command, so a failure is readable from the run
+# summary and the annotations API rather than only from the job log.
+note() {
+	printf '  %s\n' "$1"
+	if [ -n "${GITHUB_ACTIONS:-}" ]; then printf '::error::%s\n' "$1"; fi
+	fail=1
+}
 
 printf 'frontmatter\n'
 head -1 SKILL.md | grep -qx -- '---' || note "SKILL.md does not open with ---"
@@ -32,6 +38,7 @@ if command -v spawn >/dev/null 2>&1; then
 		'{"jsonrpc":"2.0","id":2,"method":"tools/list"}' |
 		spawn mcp 2>/dev/null | grep -o '"spawn_[a-z][a-z]*"' | tr -d '"' | sort -u)
 	[ -n "$live" ] || note "spawn mcp returned no tools"
+	printf '  binary has: %s\n' "$(printf '%s ' $live)"
 	documented=$(grep -rho 'spawn_[a-z][a-z]*' SKILL.md reference/ | sort -u)
 	for t in $live; do
 		printf '%s\n' "$documented" | grep -qx -- "$t" || note "$t exists but is documented nowhere"
