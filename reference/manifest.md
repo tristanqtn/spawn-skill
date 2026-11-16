@@ -28,7 +28,7 @@ tools = ["python3", "ripgrep"]
 | `schema` | int | — | **required**, must be `1`. |
 | `name` | string | — | **required.** `[A-Za-z0-9][A-Za-z0-9_.+-]*`. Becomes the container name. |
 | `tools` | string[] | `[]` | nixpkgs attribute names. |
-| `profiles` | string[] | `[]` | built-in suites: `general`, `active-directory`, `web`, `ctf`, `forensics`. Merged with `tools`, deduplicated. |
+| `profiles` | string[] | `[]` | built-in suites; `spawn profiles` lists them. Merged with `tools`, deduplicated. Some suites include others, and a tool reached twice still appears once. |
 | `nixpkgs` | string | a pinned revision | a flake ref. Leave it alone unless you need a different nixpkgs; the default is a 40-char revision baked into the binary, which is what makes two hosts build the same closure. |
 | `allow_unfree` | bool | `false` | permits unfree licences. `burpsuite` and `wpscan` need this. |
 | `allow_insecure` | string[] | `[]` | per-package insecurity opt-in, by the package's full name. |
@@ -171,6 +171,21 @@ switch on and no default route via the tunnel, an environment is simply offline.
 
 Kernel WireGuard works rootless. There is a `wireguard-go` userspace fallback when the
 module is unavailable.
+
+## Packages spawn maintains itself
+
+A few attributes are spawn's own build, layered over the pinned nixpkgs as an overlay.
+This exists because "wait for nixpkgs" is not an answer when the tool is the job:
+nixpkgs ships hashcat 7.1.2 on the pin *and* on unstable, while upstream released 8.0.0
+on 2026-10-25.
+
+`spawn check` names any that a manifest is using, under `spawn-maintained`. It matters
+because the env is then not running stock nixpkgs, which is exactly the kind of thing
+that should never be a surprise when a result is disputed.
+
+An override applies only when the manifest actually resolved that attribute, so a
+manifest that does not use one generates a byte-identical expression and rebuilds
+nothing.
 
 ## Checking one
 

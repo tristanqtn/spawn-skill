@@ -25,7 +25,33 @@ tool list has not changed, and replaces the container while keeping the filesyst
 it has. So `spawn_create` is safe to call again rather than something to guard with
 `spawn_list`.
 
-**Built-in profiles:** `general`, `active-directory`, `web`, `ctf`, `forensics`.
+**Built-in profiles.** Suites compose: a manifest may list several, and some suites are
+themselves built from others.
+
+| Suite | For |
+|---|---|
+| `pentest` | the daily driver: general + recon + creds + pivot + AD + web, 144 packages |
+| `general` | a shell worth living in: git, ripgrep, jq, python3, net tools |
+| `recon` | nmap, masscan, rustscan, naabu, tcpdump, tshark, smbmap |
+| `creds` | hashcat 8, john, hydra, seclists, crunch |
+| `pivot` | chisel, ligolo-ng, socat, proxychains, sshuttle |
+| `active-directory` | netexec, impacket, BloodHound CE + neo4j, certipy, kerbrute |
+| `web` | ffuf, sqlmap, nuclei, nikto, dalfox, httpx, katana |
+| `wifi` | aircrack-ng, hcxtools, kismet, bettercap — needs real hardware |
+| `osint` | theharvester, amass, subfinder, maigret — needs egress |
+| `ctf` | pwntools, gdb, radare2, ghidra, stego and crypto |
+| `forensics` | sleuthkit, autopsy, bulk_extractor, yara |
+
+Two of these cannot do their job inside a default sandbox, and it is worth knowing
+before you promise a user a result:
+
+- **`wifi` needs a real wireless interface.** The binaries all run; without a device
+  passed through they see no interface, and on WSL2 there is no wireless stack at all.
+- **`osint` needs egress.** Every tool in it reaches the internet, so under the default
+  deny policy the suite is inert. Say so rather than reporting "no results found".
+
+Asking for a suite is much cheaper than listing its tools by hand, and environments
+built from the same suite share one copy on disk.
 
 A package name that nixpkgs does not have fails at build time with nix's own error,
 which names the attribute. Package names are nixpkgs attributes, not apt names:

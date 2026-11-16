@@ -13,6 +13,7 @@ A command that takes a manifest defaults to `./spawn.toml`.
 | `spawn init` | write a manifest and editable dotfiles here. `--force` overwrites. |
 | `spawn up [manifest.toml\|<env>] [cmd...]` | build an environment and enter it. |
 | `spawn check [manifest.toml]` | evaluate a manifest without building. |
+| `spawn smoke [--keep] <suite>` | build a suite and run every tool in it. |
 | `spawn ls` | list environments with their state. |
 | `spawn stop <env>` | stop it, keeping the filesystem. |
 | `spawn rm [--purge] <env>` | destroy it. `--purge` also deletes persisted data. |
@@ -48,6 +49,25 @@ recorded on the container. This is the quick way back into a box.
 
 Running `spawn up` again on a changed manifest replaces the container and keeps the
 filesystem — so you can iterate on a shell config against a live environment.
+
+## Does the tool actually run?
+
+`spawn check` proves an attribute resolves in nixpkgs. `spawn smoke` proves the tool
+runs in a container, which is a different claim:
+
+```
+spawn smoke creds          # build the suite, run every tool, table of results
+spawn smoke web --keep     # leave the env behind to investigate a failure
+```
+
+It builds a throwaway env with egress denied, runs each tool's check, and exits
+non-zero if any failed. Every tool in every suite is covered: the suite's `[smoke]`
+table, or a `command -v <attr>` default.
+
+Reach for it when a tool behaves as if it is missing or broken and you want to know
+whether the packaging or your usage is at fault. The answer is often neither:
+`hashcat` needed an OpenCL implementation before it could crack anything, and `fping`
+needed `/etc/protocols` to exist.
 
 ## Scripting it
 

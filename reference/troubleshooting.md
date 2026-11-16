@@ -54,6 +54,35 @@ every host path — including mount sources, device paths, secret sources and `f
 sources — **before** anything is fetched. A missing file named in `[secrets]` or
 `[files]` is caught there rather than after the download.
 
+## "It installed but it does not work"
+
+Run `spawn smoke <suite>` ([cli.md](cli.md)). It builds the suite and runs every tool,
+so it separates "this package is broken" from "I am calling it wrong" without you
+having to guess.
+
+Two findings from its first run are worth knowing because they look like tool bugs:
+
+- **A tool needs something the container has no copy of.** `fping` exited
+  `fping: icmp: unknown protocol` because the env had no `/etc/protocols`. Anything
+  resolving a protocol or service by NAME hits the same wall. spawn now seeds both
+  files, but the shape of the error -- a tool complaining about its own input -- is
+  worth recognising.
+- **A tool needs a driver the container does not get.** `hashcat` started, found zero
+  devices and exited, because a container gets no GPU driver and nixpkgs ships the
+  OpenCL loader without an implementation. The `creds` suite includes `pocl`, a CPU
+  implementation, so it cracks on the CPU. For real speed, pass the GPU's devices
+  through.
+
+## A tool needs hardware or privileges the env does not have
+
+Some suites say so themselves. `spawn profiles` and `spawn check` print each suite's
+`note`: `recon` needs `caps = ["NET_RAW"]` or nmap's `-sS` fails, `wifi` needs a real
+wireless interface, `osint` needs egress.
+
+A profile never grants a capability on its own. That is deliberate -- privileges stay
+in the manifest where they can be reviewed -- so the note is telling you what to add,
+not describing what you already have.
+
 ## A backgrounded process died
 
 `podman exec` reaps its process group when it returns, so a listener started with `&`
