@@ -26,5 +26,14 @@ jobs:
           go build -o /usr/local/bin/spawn .
           spawn version
 
+      # `spawn mcp` refuses to serve when either dependency is missing, so without nix
+      # on the runner the tool-name check silently degrades to nothing. podman is
+      # preinstalled on ubuntu-latest; nix is not.
+      - uses: cachix/install-nix-action@v31
+      - name: the runtime deps spawn mcp insists on
+        run: |
+          podman --version
+          nix --version
+
       - name: check the skill
         run: ./check.sh

@@ -32,20 +32,30 @@ done
 
 printf 'tool names match the binary\n'
 if command -v spawn >/dev/null 2>&1; then
-	# tools/list over stdio. stderr is dropped: spawn mcp puts its own logging there.
+	# tools/list over stdio. Keep stderr: `spawn mcp` refuses to serve at all when nix
+	# or podman is missing, and that message on stderr is the only thing that explains
+	# an empty tool list. Dropping it cost an afternoon.
+	err=$(mktemp)
 	live=$(printf '%s\n' \
 		'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"check","version":"0"}}}' \
 		'{"jsonrpc":"2.0","id":2,"method":"tools/list"}' |
-		spawn mcp 2>/dev/null | grep -o '"spawn_[a-z][a-z]*"' | tr -d '"' | sort -u)
-	[ -n "$live" ] || note "spawn mcp returned no tools"
-	printf '  binary has: %s\n' "$(printf '%s ' $live)"
-	documented=$(grep -rho 'spawn_[a-z][a-z]*' SKILL.md reference/ | sort -u)
-	for t in $live; do
-		printf '%s\n' "$documented" | grep -qx -- "$t" || note "$t exists but is documented nowhere"
-	done
-	for t in $documented; do
-		printf '%s\n' "$live" | grep -qx -- "$t" || note "$t is documented but the binary has no such tool"
-	done
+		spawn mcp 2>"$err" | grep -o '"spawn_[a-z][a-z]*"' | tr -d '"' | sort -u)
+	if [ -z "$live" ]; then
+		# One cause, so report it alone: comparing against an empty list would bury it
+		# under one "no such tool" note per documented tool.
+		note "spawn mcp returned no tools: $(tr '\n' ' ' < "$err")"
+		rm -f "$err"
+	else
+		rm -f "$err"
+		printf '  binary has: %s\n' "$(printf '%s ' $live)"
+		documented=$(grep -rho 'spawn_[a-z][a-z]*' SKILL.md reference/ | sort -u)
+		for t in $live; do
+			printf '%s\n' "$documented" | grep -qx -- "$t" || note "$t exists but is documented nowhere"
+		done
+		for t in $documented; do
+			printf '%s\n' "$live" | grep -qx -- "$t" || note "$t is documented but the binary has no such tool"
+		done
+	fi
 else
 	printf '  spawn not installed, skipping\n'
 fi
