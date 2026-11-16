@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Without the binary, check.sh skips the half that matters -- whether the tools
+      # this skill describes actually exist. So build spawn from the main repo and let
+      # the real tools/list answer.
+      - uses: actions/checkout@v4
+        with:
+          repository: tristanqtn/spawn
+          path: .spawn-src
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: .spawn-src/go.mod
+      - name: build spawn
+        run: |
+          cd .spawn-src
+          go build -o /usr/local/bin/spawn .
+          spawn version
+
+      - name: check the skill
+        run: ./check.sh
