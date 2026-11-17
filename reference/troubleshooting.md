@@ -85,11 +85,19 @@ not describing what you already have.
 
 ## sshd rejects a password you know is right
 
-Use a key. Public-key auth into an env works; password auth against `/etc/shadow` does
-not, and the failure is confusing because sshd clearly reads the file -- its
-account-expiry check works -- and then refuses a correct password. Verified in
-isolation over loopback with no network or policy in the way, and the hash itself is
-fine. It is nixpkgs' OpenSSH built without PAM, not the environment.
+Use a key. Public-key auth into an env works and password auth does not, however
+correct the password is. Do not spend time on it -- all the obvious causes have been
+eliminated:
+
+- the hash is right (`crypt()` in the env reproduces it exactly) and sshd does read
+  `/etc/shadow`;
+- with `UsePAM no`, nixpkgs' sshd links libpam and **not** libcrypt, so it has nothing
+  to compare a password with;
+- with `UsePAM yes` and `pam_unix.so` by absolute path, PAM runs and returns
+  "Authentication service cannot retrieve authentication info" -- and that persists
+  with a readable `/etc/shadow` and with a setuid `unix_chkpwd`.
+
+It is nixpkgs' OpenSSH/PAM packaging in a minimal environment, not the environment.
 
 An ssh session also starts with sshd's `PATH`, not the profile's, so commands come back
 "not found" until it is set. `SPAWN_PROFILE` is exported in the container and points at
