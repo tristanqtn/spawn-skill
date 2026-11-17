@@ -97,7 +97,10 @@ eliminated:
   "Authentication service cannot retrieve authentication info" -- and that persists
   with a readable `/etc/shadow` and with a setuid `unix_chkpwd`.
 
-It is nixpkgs' OpenSSH/PAM packaging in a minimal environment, not the environment.
+- rebuilding openssh without PAM, and then with libxcrypt added so it genuinely links
+  `libcrypt.so.2`, still refuses the password -- so that override is not shipped.
+
+Everything nameable has been eliminated. Use a key; do not spend a session on it.
 
 An ssh session also starts with sshd's `PATH`, not the profile's, so commands come back
 "not found" until it is set. `SPAWN_PROFILE` is exported in the container and points at
