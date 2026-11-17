@@ -83,6 +83,18 @@ A profile never grants a capability on its own. That is deliberate -- privileges
 in the manifest where they can be reviewed -- so the note is telling you what to add,
 not describing what you already have.
 
+## sshd rejects a password you know is right
+
+Use a key. Public-key auth into an env works; password auth against `/etc/shadow` does
+not, and the failure is confusing because sshd clearly reads the file -- its
+account-expiry check works -- and then refuses a correct password. Verified in
+isolation over loopback with no network or policy in the way, and the hash itself is
+fine. It is nixpkgs' OpenSSH built without PAM, not the environment.
+
+An ssh session also starts with sshd's `PATH`, not the profile's, so commands come back
+"not found" until it is set. `SPAWN_PROFILE` is exported in the container and points at
+the profile.
+
 ## A backgrounded process died
 
 `podman exec` reaps its process group when it returns, so a listener started with `&`
